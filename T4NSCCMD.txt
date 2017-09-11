@@ -1,0 +1,176 @@
+page+pparity	: 4432 words (32bit) = 16384B+1344B
+spare+sparity   : 79 (32bit) = 256B+60B
+total words     : 4511 (32bit) = 18044B
+full page words : 4512 (32bit) = 18048B
+
+--------------Table--------------
+0: NOP
+1: Reset
+6: Set features (async mode)
+13: Page read trigger
+18: Page read transfer
+28: Page program with transfer
+37: Block erase trigger
+41: Status check
+46: Get features (toggle mode)
+55: Page read transfer without ecc
+
+-----------Instructions----------
+No operation : 1
+halt
+00000000000000000000000000000000000000000
+
+Reset : 5
+to pcg	/	way sel		/	0 to 00100	/	000000 (way sel)	/	0					/	write command
+to pcg	/	zero		/	0 to 00101	/	110000 (Po reset)	/	0					/	write command
+to pcg	/	zero		/	0 to 00101	/	110010 (Pi reset)	/	0					/	write command
+to pcg	/	zero		/	0 to 00101	/	101100 (reset)		/	0					/	write command
+halt
+1 0111 000000 00000 00100 0000000000000000 0001
+1 0000 110000 00000 00101 0000000000000000 0001
+1 0000 110010 00000 00101 0000000000000000 0001
+1 0000 101100 00000 00101 0000000000000000 0001
+0 0000 000000 00000 00000 0000000000000000 0000
+
+Set features : 7
+to pcg	/	way sel		/	0 to 00100	/	000000 (way sel)	/	0					/	write command
+to dcl	/	user data	/	0 to 00000	/	000000 (dcl bypass)	/	3					/	read command
+dontcare/	zero		/	0 to 00000	/	000000 (nothing)	/	3					/	down transfer standby
+to pcg	/	zero		/	0 to 00101	/	100000 (set feature)/	0x02				/	write command
+to pcg	/	zero		/	0 to 00101	/	100000 (set feature)/	0x10				/	write command
+to pcg	/	zero		/	0 to 00101	/	100000 (set feature)/	0x01				/	write command
+halt
+1 0111 000000 00000 00100 0000000000000000 0001
+0 0010 000000 00000 00000 0000000000000011 0010
+0 0000 000000 00000 00000 0000000000000011 1000
+1 0000 100000 00000 00101 0000000000000010 0001
+1 0000 100000 00000 00101 0000000000010000 0001
+1 0000 100000 00000 00101 0000000000000001 0001
+0 0000 000000 00000 00000 0000000000000000 0000
+
+Page read trigger : 5
+to pcg	/	way sel		/	0 to 00100	/	000000 (way sel)	/	0					/	write command
+to pcg	/	zero		/	0 to 00100	/	000010 (col addr)	/	0					/	write command
+to pcg	/	row addr	/	0 to 00100	/	000100 (row addr)	/	0					/	write command
+to pcg	/	zero		/	0 to 00101	/	000000 (page read)	/	0					/	write command
+halt
+1 0111 000000 00000 00100 0000000000000000 0001
+1 0000 000010 00000 00100 0000000000000000 0001
+1 0001 000100 00000 00100 0000000000000000 0001
+1 0000 000000 00000 00101 0000000000000000 0001
+0 0000 000000 00000 00000 0000000000000000 0000
+ 
+Page read transfer : 10
+*to dcl  /	row addr	/   0 to 00011	/   000000 (seed)		/	0					/   write command
+*to pcg	/	way sel		/	0 to 00100	/	000000 (way sel)	/	0					/	write command
+*to pcg	/	zero		/	0 to 00101	/	000011 (read trf)	/	total words			/	write command
+*dontcare/	zero		/	0 to 00000	/	000000 (nothing)	/	page+pparity words	/	up transfer standby
+*dontcare/	zero		/	0 to 00000	/	000000 (nothing)	/	spare+sparity words	/	up transfer standby
+to dcl	/	pdata addr	/	0 to 00000	/	000001 (page up)	/	page+pparity words	/	write command
+to dcl	/	sdata addr	/	0 to 00000	/	000010 (spare up)	/	spare+sparity words	/	write command
+to dcl	/	ecccnt addr	/	0 to 00010	/	000000 (ecccnt up)	/	0					/	write command
+to dcl	/	cmplt addr	/	0 to 00001	/	000000 (cmplt)		/	0					/	write command
+halt
+0 0001 000000 00000 00011 0000000000000000 0001
+1 0111 000000 00000 00100 0000000000000000 0001
+1 0000 000011 00000 00101 0001000110011111 0001
+0 0000 000000 00000 00000 0001000101010000 0100
+0 0000 000000 00000 00000 0000000001001111 0100
+0 0011 000001 00000 00000 0001000101010000 0001
+0 0100 000010 00000 00000 0000000001001111 0001
+0 0101 000000 00000 00010 0000000000000000 0001
+0 0110 000000 00000 00001 0000000000000000 0001
+0 0000 000000 00000 00000 0000000000000000 0000
+
+Page program with transfer : 9
+to pcg	/	way sel		/	0 to 00100	/	000000 (way sel)	/	0					/	write command
+to pcg	/	zero		/	0 to 00100	/	000010 (col addr)	/	0					/	write command
+to pcg	/	row addr	/	0 to 00100	/	000100 (row addr)	/	0					/	write command
+*to dcl  /	row addr	/   0 to 00011	/   000000 (seed)		/	0					/   read command
+*to pcg	/	zero		/	0 to 00101	/	000100 (prog page)	/	total words			/	write command
+*dontcare/	zero		/	0 to 00000	/	000000 (nothing)	/	total words			/	down transfer standby
+to dcl	/	pdata addr	/	0 to 00000	/	000001 (page down)	/	page+pparity words	/	read command
+to dcl	/	sdata addr	/	0 to 00000	/	000010 (spare down)	/	spare+sparity words	/	read command
+halt
+1 0111 000000 00000 00100 0000000000000000 0001
+1 0000 000010 00000 00100 0000000000000000 0001
+1 0001 000100 00000 00100 0000000000000000 0001
+0 0001 000000 00000 00011 0000000000000000 0010
+1 0000 000100 00000 00101 0001000110011111 0001
+0 0000 000000 00000 00000 0001000110011111 1000
+0 0011 000001 00000 00000 0001000101010000 0010
+0 0100 000010 00000 00000 0000000001001111 0010
+0 0000 000000 00000 00000 0000000000000000 0000
+
+Block erase trigger : 4
+to pcg	/	way sel		/	0 to 00100	/	000000 (way sel)	/	0					/	write command
+to pcg	/	row addr	/	0 to 00100	/	000100 (row addr)	/	0					/	write command
+to pcg	/	zero		/	0 to 00101	/	001000 (block erase)/	0					/	write command
+halt
+1 0111 000000 00000 00100 0000000000000000 0001
+1 0001 000100 00000 00100 0000000000000000 0001
+1 0000 001000 00000 00101 0000000000000000 0001
+0 0000 000000 00000 00000 0000000000000000 0000
+
+Status check : 5
+dontcare/	zero		/	0 to 00000	/	000000 (nothing)	/	1					/	up transfer standby
+to pcg	/	way sel		/	0 to 00100	/	000000 (way sel)	/	0					/	write command
+to pcg	/	zero		/	0 to 00101	/	101001 (read status)/	1					/	write command
+to dcl	/	cmplt addr	/	0 to 00000	/	000000 (dcl bypass)	/	1					/	write command
+halt
+0 0000 000000 00000 00000 0000000000000001 0100
+1 0111 000000 00000 00100 0000000000000000 0001
+1 0000 101001 00000 00101 0000000000000001 0001
+0 0110 000000 00000 00000 0000000000000001 0001
+0 0000 000000 00000 00000 0000000000000000 0000
+
+Get features : 9
+*dontcare/	zero		/	0 to 00000	/	000000 (nothing)	/	4					/	up transfer standby
+*to pcg	/	way sel		/	0 to 00100	/	000000 (way sel)	/	0					/	write command
+*to pcg	/	zero		/	0 to 00101	/	100101 (get feature)/	0x01				/	write command
+*to pcg	/	zero		/	0 to 00101	/	100101 (get feature)/	0x02				/	write command
+*to pcg	/	zero		/	0 to 00101	/	100101 (get feature)/	0x10				/	write command
+*to pcg	/	zero		/	0 to 00101	/	100101 (get feature)/	0x30				/	write command
+to dcl	/	user data	/	0 to 00000	/	000000 (dcl bypass)	/	4					/	write command
+to dcl	/	cmplt addr	/	0 to 00001	/	000000 (cmplt)		/	0					/	write command
+halt
+0 0000 000000 00000 00000 0000000000000100 0100
+1 0111 000000 00000 00100 0000000000000000 0001
+1 0000 100101 00000 00101 0000000000000001 0001
+1 0000 100101 00000 00101 0000000000000010 0001
+1 0000 100101 00000 00101 0000000000010000 0001
+1 0000 100101 00000 00101 0000000000110000 0001
+0 0010 000000 00000 00000 0000000000000100 0001
+0 0110 000000 00000 00001 0000000000000000 0001
+0 0000 000000 00000 00000 0000000000000000 0000
+
+Page read transfer without ECC : 6
+*dontcare/	zero		/	0 to 00000	/	000000 (nothing)	/	full page size		/	up transfer standby
+*to pcg	/	way sel		/	0 to 00100	/	000000 (way sel)	/	0					/	write command
+*to pcg	/	zero		/	0 to 00101	/	000011 (read trf)	/	full page size		/	write command
+to dcl	/	pdata addr	/	0 to 00000	/	000000 (dcl bypass)	/	full page size		/	write command
+to dcl	/	cmplt addr	/	0 to 00001	/	000000 (cmplt)		/	0					/	write command
+halt
+0 0000 000000 00000 00000 0001000110100000 0100
+1 0111 000000 00000 00100 0000000000000000 0001
+1 0000 000011 00000 00101 0001000110100000 0001
+0 0011 000000 00000 00000 0001000110100000 0001
+0 0110 000000 00000 00001 0000000000000000 0001
+0 0000 000000 00000 00000 0000000000000000 0000
+
+
+
+*dontcare/	zero		/	0 to 00000	/	000000 (nothing)	/	full page words     /   down transfer standby
+to dcl	/	pdata addr	/	0 to 00000	/	000000 (page down)	/	full page words 	/	read command
+to pcg	/	way sel		/	0 to 00100	/	000000 (way sel)	/	0					/	write command
+to pcg	/	zero		/	0 to 00100	/	000010 (col addr)	/	0					/	write command
+to pcg	/	row addr	/	0 to 00100	/	000100 (row addr)	/	0					/	write command
+to pcg  /   zero        /   0 to 00101  /   000100 (row addr)   /   full page words     /   write command 
+halt
+0 0000 000000 00000 00000 0100011010000000 1000,
+0 0011 000000 00000 00000 0100011010000000 0010,
+1 0111 000000 00000 00100 0000000000000000 0001,
+1 0000 000010 00000 00100 0000000000000000 0001,
+1 0001 000100 00000 00100 0000000000000000 0001,
+1 0000 000100 00000 00101 0100011010000000 0001,
+0 0000 000000 00000 00000 0000000000000000 0000;

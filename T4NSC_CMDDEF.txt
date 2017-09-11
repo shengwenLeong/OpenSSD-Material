@@ -1,0 +1,103 @@
+Tab space: 4, Courier New
+//////////////////////////////////////////////////////////////////////////////////
+//  for Cosmos+ OpenSSD
+// Copyright (c) 2016 Hanyang University ENC Lab.
+// Contributed by Yong Ho Song <yhsong@enc.hanyang.ac.kr>
+//				  Kibin Park <kbpark@enc.hanyang.ac.kr>
+//				  Jaewook Kwak <jwkwak@enc.hanyang.ac.kr>
+
+// Author: Kibin Park <kbpark@enc.hanyang.ac.kr>
+// Document Name: Tiger 4 NFC Command Description
+// Version: v1.1.0
+//////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////
+// Revision History:
+//
+// * v1.1.0
+//   - add a description about Read page transfer raw
+//
+// * v1.0.0
+//   - First draft (for Tiger 4 NFC, Tiger4NSC version 1.x)
+//////////////////////////////////////////////////////////////////////////////////
+
+|--------------------|
+| NFC Register Space |
+|--------------------|
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|Register Name      |Offset (Byte)  |Description                                                                                                                                                                                  |
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|cmdSelect          |0              |NFC command selection register; write a NFC command opcode to be executed here
+|rowAddress         |4              |NAND flash row address designation register
+|userData           |8              |multi purpose register
+|dataAddress        |12             |page data address designation register
+|spareAddress       |16             |spare data address designation register
+|errorCountAddress  |20             |error count report address designation register
+|completionAddress  |24             |command completion address designation register
+|waySelection       |28             |way selection register
+|channelBusy        |32             |NFC ready(0)/busy(1) flag register
+|readyBusy          |36             |NAND way ready(1)/busy(0) signal bypass
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+
+|-------------------------|
+| NFC Command Description |
+|-------------------------|
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|NFC Command Name                |Opcode     |Description                                                                                                                                                                         |
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|V2FCommand_NOP                  |0          |No operation                                                                                                                                                                        |
+|V2FCommand_Reset                |1          |(nand flash) way reset                                                                                                                                                              |
+|V2FCommand_SetFeatures          |6          |(nand flash) set features (asynchronous mode)                                                                                                                                       |
+|V2FCommand_GetFeatures          |46         |(nand flash) get features (toggle mode, deprecated)                                                                                                                                 |
+|V2FCommand_ReadPageTrigger      |13         |(nand flash) read page (load page from nand array to nand data register)                                                                                                            |
+|V2FCommand_ReadPageTransfer     |18         |(nand flash) read data (read data from nand data register to controller dram buffer, with data unscrambling and ECC operation)                                                      |
+|V2FCommand_ProgramPage          |28         |(nand flash) program page (write data from controller dram buffer to nand data register and trigger nand page program nand flash command, with ECC and data scrambling operation)   |
+|V2FCommand_BlockErase           |37         |(nand flash) erase block (erase block)                                                                                                                                              |
+|V2FCommand_StatusCheck          |41         |(nand flash) status check (read nand flash way status)                                                                                                                              |
+|V2FCommand_ReadPageTransferRaw  |55         |(nand flash) read data (read data from nand data register to controller dram buffer, WITHOUT data unscrambling and ECC operation)                                                   |
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+
+|---------------------------------------------------------------------------------------------------------------------------|
+|NFC Command Name                |Additionally Required Register                                                            |
+|---------------------------------------------------------------------------------------------------------------------------|
+|V2FCommand_NOP                  |                                                                                          |
+|V2FCommand_Reset                |waySelection                                                                              |
+|V2FCommand_SetFeatures          |waySelection, userData                                                                    |
+|V2FCommand_GetFeatures          |waySelection, userData, completionAddress                                                 |
+|V2FCommand_ReadPageTrigger      |waySelection, rowAddress                                                                  |
+|V2FCommand_ReadPageTransfer     |waySelection, dataAddress, spareAddress, errorCountAddress, completionAddress, rowAddress |
+|V2FCommand_ProgramPage          |waySelection, rowAddress, dataAddress, spareAddress                                       |
+|V2FCommand_BlockErase           |waySelection, rowAddress                                                                  |
+|V2FCommand_StatusCheck          |waySelection, completionAddress                                                           |
+|V2FCommand_ReadPageTransferRaw  |waySelection, dataAddress, completionAddress                                              |
+|---------------------------------------------------------------------------------------------------------------------------|
+
+|-------------------------|
+| Completion Check Method |
+|-------------------------|
+|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|NFC Command Name                |Method                                                                                                                                                                                      |
+|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|V2FCommand_NOP                  |                                                                                                                                                                                            |
+|V2FCommand_Reset                |Optional (read readyBusy register)                                                                                                                                                          |
+|V2FCommand_SetFeatures          |Optional (read readyBusy register)                                                                                                                                                          |
+|V2FCommand_GetFeatures          |Mandatory (Poll *completionAddress, '1' means 'completed')                                                                                                                                  |
+|V2FCommand_ReadPageTrigger      |Mandatory (via V2FCommand_StatusCheck)                                                                                                                                                      |
+|V2FCommand_ReadPageTransfer     |Mandatory (Poll *completionAddress, '1' means 'completed', Read *errorCountAddress, (('read value' & 0x10000000) == 0) means ECC fail)                                                      |
+|V2FCommand_ProgramPage          |Mandatory (via V2FCommand_StatusCheck)                                                                                                                                                      |
+|V2FCommand_BlockErase           |Mandatory (via V2FCommand_StatusCheck)                                                                                                                                                      |
+|V2FCommand_StatusCheck          |Mandatory (Poll *completionAddress, ('read value' & 0x60 == 0x60) means 'status check command completed', (('read value') & 0x3 != 0) means 'last command before status check has failed')  |
+|V2FCommand_ReadPageTransferRaw  |Mandatory (via V2FCommand_StatusCheck)                                                                                                                                                      |
+|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+
+|-------------------------|
+| NFC Command Sequence    |
+|-------------------------|
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|NFC Operation Name       |Sequence                                                                                                                                                                                               |
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|NAND reset               |issue V2FCommand_Reset to each NAND flash way -> issue V2FCommand_SetFeatures to each NAND flash way, to enable toggle mode interface                                                                  |
+|NAND block erase         |issue V2FCommand_BlockErase to a way -> check NAND flash way status (via V2FCommand_StatusCheck)                                                                                                       |
+|NAND page program        |issue V2FCommand_ProgramPage to a way -> check NAND flash way status (via V2FCommand_StatusCheck)                                                                                                      |
+|NAND page read           |issue V2FCommand_ReadPageTrigger to a way -> check NAND flash way status (via V2FCommand_StatusCheck) -> issue V2FCommand_ReadPageTransfer to a way                                                    |
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
