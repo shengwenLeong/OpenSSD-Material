@@ -1,0 +1,10 @@
+set PROJECT_NAME "OpenSSD2"
+OpenSSD2
+set TOPLEVEL_NAME "OpenSSD2"
+OpenSSD2
+write_hwdef -force -file ./$PROJECT_NAME.runs/synth_1/$TOPLEVEL_NAME.hwdef
+ERROR: [Common 17-37] Directory in which file OpenSSD2.hwdef is to be written does not exist [/opt/Xilinx/Vivado/2016.2/OpenSSD2.runs/synth_1]
+write_hwdef -force -file /home/lian/$PROJECT_NAME.runs/synth_1/$TOPLEVEL_NAME.hwdef
+ERROR: [Common 17-37] Directory in which file OpenSSD2.hwdef is to be written does not exist [/home/lian/OpenSSD2.runs/synth_1]
+write_hwdef -force -file /home/liangshengwen/OpenSSD2016.2_0.1.0/Source/Predefined_Project/OpenSSD2_2Ch8Way-1.0.1/$PROJECT_NAME.runs/synth_1/$TOPLEVEL_NAME.hwdef
+write_sysdef -force -hwdef /home/liangshengwen/OpenSSD2016.2_0.1.0/Source/Predefined_Project/OpenSSD2_2Ch8Way-1.0.1/$PROJECT_NAME.runs/synth_1/$TOPLEVEL_NAME.hwdef -bitfile /home/liangshengwen/OpenSSD2016.2_0.1.0/Source/Predefined_Project/OpenSSD2_2Ch8Way-1.0.1/$PROJECT_NAME.runs/impl_1/$TOPLEVEL_NAME.bit -file /home/liangshengwen/OpenSSD2016.2_0.1.0/Source/Predefined_Project/OpenSSD2_2Ch8Way-1.0.1/$PROJECT_NAME.runs/impl_1/$TOPLEVEL_NAME.sysdef
